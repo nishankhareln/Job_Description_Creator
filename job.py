@@ -138,7 +138,7 @@ def save_job_to_db(data):
     conn.commit()
     cursor.close()
     conn.close()
-    st.success("📃 Job saved to database!")
+    # st.success("📃 Job saved to database!")
 
 # Prompt Generator
 
@@ -232,4 +232,4 @@ if st.button("🚀 Generate Job Description", type="primary"):
 # Footer
 st.markdown("---")
 st.markdown("-------Recruit Nepal------")
-st.write("DB Host:", PG_HOST)
+# st.write("DB Host:", PG_HOST)
