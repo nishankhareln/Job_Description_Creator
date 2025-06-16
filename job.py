@@ -14,11 +14,11 @@ def get_secret(key):
 
 # Load secrets
 API_KEY = get_secret("GEMINI_API_KEY")
-PG_HOST = get_secret("PG_HOST")
-PG_PORT = get_secret("PG_PORT")
-PG_DB = get_secret("PG_DB")
-PG_USER = get_secret("PG_USER")
-PG_PASSWORD = get_secret("PG_PASSWORD")
+PG_HOST = st.secrets["postgres"]["host"]
+PG_PORT = st.secrets["postgres"]["port"]
+PG_DB = st.secrets["postgres"]["dbname"]
+PG_USER = st.secrets["postgres"]["user"]
+PG_PASSWORD = st.secrets["postgres"]["password"]
 
 # Check API Key
 if not API_KEY:
