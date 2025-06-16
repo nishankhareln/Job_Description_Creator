@@ -5,13 +5,24 @@ import os
 import json
 import psycopg2
 
-# Load environment variables from .env file
+# Load .env for local dev
 load_dotenv()
 
-# Fetch API key
-API_KEY = os.getenv("GEMINI_API_KEY")
+# Dual support: local (.env) and Streamlit Cloud (secrets.toml)
+def get_secret(key):
+    return os.getenv(key) or st.secrets.get(key)
+
+# Load secrets
+API_KEY = get_secret("GEMINI_API_KEY")
+PG_HOST = get_secret("PG_HOST")
+PG_PORT = get_secret("PG_PORT")
+PG_DB = get_secret("PG_DB")
+PG_USER = get_secret("PG_USER")
+PG_PASSWORD = get_secret("PG_PASSWORD")
+
+# Check API Key
 if not API_KEY:
-    st.error("API key not found. Please set the GEMINI_API_KEY in your .env file.")
+    st.error("❌ API key not found in .env or .streamlit/secrets.toml")
     st.stop()
 
 # Configure the page
@@ -100,13 +111,7 @@ with col4:
     include_growth_opportunities = st.checkbox("Include growth opportunities")
     include_team_info = st.checkbox("Include team information")
 
-# DB Connection Setup
-PG_HOST = os.getenv("PG_HOST")
-PG_PORT = os.getenv("PG_PORT")
-PG_DB = os.getenv("PG_DB")
-PG_USER = os.getenv("PG_USER")
-PG_PASSWORD = os.getenv("PG_PASSWORD")
-
+# DB connection
 def get_db_connection():
     return psycopg2.connect(
         host=PG_HOST,
@@ -138,49 +143,46 @@ def save_job_to_db(data):
     conn.commit()
     cursor.close()
     conn.close()
-    # st.success("📃 Job saved to database!")
-
-# Prompt Generator
 
 def generate_prompt(data):
     skills_text = ", ".join(data.get("skills", [])) if isinstance(data.get("skills"), list) else "Not specified"
-    prompt = f"""
-    Generate a job description for:
-    Job Title: {data['job_title']}
-    Company: {data['company_name']}
-    Experience Level: {data['experience_level']}
-    Industry: {data['industry']}
-    Location: {data['location']}
-    Type: {data['employment_type']}
-    Skills: {skills_text}
-    Salary: {data['salary_range'] or 'Competitive'}
-    Remote: {data['remote_work']}
-    Description: {data['company_description']}
-    Website: {data['company_website']}
-    Additional Instructions: {data['application_instructions']}
-    {"Include benefits." if data['include_benefits'] else ""}
-    {"Include company culture." if data['include_company_culture'] else ""}
-    {"Include growth opportunities." if data['include_growth_opportunities'] else ""}
-    {"Include team info." if data['include_team_info'] else ""}
-    """
-    return prompt
+    return f"""
+Generate a job description for:
+Job Title: {data['job_title']}
+Company: {data['company_name']}
+Experience Level: {data['experience_level']}
+Industry: {data['industry']}
+Location: {data['location']}
+Type: {data['employment_type']}
+Skills: {skills_text}
+Salary: {data['salary_range'] or 'Competitive'}
+Remote: {data['remote_work']}
+Description: {data['company_description']}
+Website: {data['company_website']}
+Additional Instructions: {data['application_instructions']}
+{"Include benefits." if data['include_benefits'] else ""}
+{"Include company culture." if data['include_company_culture'] else ""}
+{"Include growth opportunities." if data['include_growth_opportunities'] else ""}
+{"Include team info." if data['include_team_info'] else ""}
+"""
 
-# Gemini API
-
+# Gemini API call
 def call_gemini_api(prompt):
     headers = {"Content-Type": "application/json"}
-    models = ["gemini-1.5-flash", "gemini-1.5-pro"]
-    data = {"contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.7, "topK": 40, "topP": 0.95, "maxOutputTokens": 2048}}
-
-    for model in models:
+    data = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.7, "topK": 40, "topP": 0.95, "maxOutputTokens": 2048
+        }
+    }
+    for model in ["gemini-1.5-flash", "gemini-1.5-pro"]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}"
         response = requests.post(url, headers=headers, json=data)
         if response.ok:
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
     return "Error: Could not generate content."
 
-# Button
+# Button handler
 if st.button("🚀 Generate Job Description", type="primary"):
     if not position or not experience_level:
         st.warning("⚠️ Please fill required fields.")
@@ -225,11 +227,10 @@ if st.button("🚀 Generate Job Description", type="primary"):
             # Save to DB
             save_job_to_db(data)
 
-            # Download
+            # Download button
             filename = f"{company_name.replace(' ', '_')}_{position.replace(' ', '_')}_job_description.txt"
             st.download_button("Download Description", description, file_name=filename, mime="text/plain")
 
 # Footer
 st.markdown("---")
 st.markdown("-------Recruit Nepal------")
-# st.write("DB Host:", PG_HOST)
