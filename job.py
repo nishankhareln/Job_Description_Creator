@@ -114,11 +114,12 @@ with col4:
 # DB connection
 def get_db_connection():
     return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        database=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD
+    host=st.secrets["PG_HOST"],
+        port=st.secrets["PG_PORT"],
+        dbname=st.secrets["PG_DB"],
+        user=st.secrets["PG_USER"],
+        password=st.secrets["PG_PASSWORD"],
+        sslmode='require'  # Required for Supabase)
     )
 
 def save_job_to_db(data):
