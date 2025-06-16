@@ -114,11 +114,11 @@ with col4:
 # DB connection
 def get_db_connection():
     return psycopg2.connect(
-    host=st.secrets["PG_HOST"],
-        port=st.secrets["PG_PORT"],
-        dbname=st.secrets["PG_DB"],
-        user=st.secrets["PG_USER"],
-        password=st.secrets["PG_PASSWORD"],
+    host=st.secrets["postgres"]["PG_HOST"],
+        port=st.secrets["postgres"]["PG_PORT"],
+        dbname=st.secrets["postgres"]["PG_DB"],
+        user=st.secrets["postgres"]["PG_USER"],
+        password=st.secrets["postgres"]["PG_PASSWORD"],
         sslmode='require'  # Required for Supabase)
     )
 
