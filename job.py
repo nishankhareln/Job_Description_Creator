@@ -3,10 +3,9 @@ import requests
 from dotenv import load_dotenv
 import os
 import json
-import psycopg2
 from datetime import date
 
-# Load .env for local dev
+# Load .env for local development
 load_dotenv()
 
 # Unified secret getter
@@ -15,11 +14,6 @@ def get_secret(key):
 
 # Load secrets
 API_KEY = get_secret("GEMINI_API_KEY")
-PG_HOST = get_secret("PG_HOST")
-PG_PORT = get_secret("PG_PORT")
-PG_DB = get_secret("PG_DB")
-PG_USER = get_secret("PG_USER")
-PG_PASSWORD = get_secret("PG_PASSWORD")
 
 # Check API Key
 if not API_KEY:
@@ -87,50 +81,7 @@ with col4:
     include_growth_opportunities = st.checkbox("Include growth opportunities")
     include_team_info = st.checkbox("Include team information")
 
-# DB connection
-def get_db_connection():
-    try:
-        st.write(f"🔌 Connecting to DB at {PG_HOST}:{PG_PORT} as {PG_USER}")
-        conn = psycopg2.connect(
-            host=PG_HOST,
-            port=int(PG_PORT),
-            dbname=PG_DB,
-            user=PG_USER,
-            password=PG_PASSWORD,
-            sslmode='require'
-        )
-        return conn
-    except Exception as e:
-        st.error(f"❌ Database connection failed: {e}")
-        raise
-
-def save_job_to_db(data):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        insert_query = """
-            INSERT INTO job_submissions (
-                company_name, company_size, industry, company_website, company_description,
-                job_title, experience_level, location, employment_type, salary_range, remote_work,
-                skills, include_benefits, include_company_culture, include_growth_opportunities,
-                include_team_info, application_email, application_link, contact_person,
-                application_deadline, application_instructions
-            ) VALUES (
-                %(company_name)s, %(company_size)s, %(industry)s, %(company_website)s, %(company_description)s,
-                %(job_title)s, %(experience_level)s, %(location)s, %(employment_type)s, %(salary_range)s, %(remote_work)s,
-                %(skills)s, %(include_benefits)s, %(include_company_culture)s, %(include_growth_opportunities)s,
-                %(include_team_info)s, %(application_email)s, %(application_link)s, %(contact_person)s,
-                %(application_deadline)s, %(application_instructions)s
-            )
-        """
-        cursor.execute(insert_query, data)
-        conn.commit()
-        cursor.close()
-        conn.close()
-        st.success("✅ Job details saved to database.")
-    except Exception as e:
-        st.error(f"❌ Failed to save job to DB: {e}")
-
+# Prompt Generator
 def generate_prompt(data):
     return f"""
 Generate a job description for:
@@ -168,7 +119,7 @@ def call_gemini_api(prompt):
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
     return "Error: Could not generate content."
 
-# Button handler
+# Generate Button
 if st.button("🚀 Generate Job Description", type="primary"):
     if not position or not experience_level:
         st.warning("⚠️ Please fill required fields.")
@@ -213,12 +164,9 @@ if st.button("🚀 Generate Job Description", type="primary"):
             st.markdown(description)
             st.markdown('</div>', unsafe_allow_html=True)
 
-            save_job_to_db(data)
-
             filename = f"{company_name.replace(' ', '_')}_{position.replace(' ', '_')}_job_description.txt"
             st.download_button("Download Description", description, file_name=filename, mime="text/plain")
 
 # Footer
 st.markdown("---")
 st.markdown("-------Recruit Nepal------")
-
