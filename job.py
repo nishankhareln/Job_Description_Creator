@@ -4,11 +4,12 @@ from dotenv import load_dotenv
 import os
 import json
 import psycopg2
+from datetime import date
 
 # Load .env for local dev
 load_dotenv()
 
-# Dual support: local (.env) and Streamlit Cloud (secrets.toml)
+# Unified secret getter
 def get_secret(key):
     return os.getenv(key) or st.secrets.get(key)
 
@@ -28,38 +29,13 @@ if not API_KEY:
 # Configure the page
 st.set_page_config(page_title="Job Description Generator", page_icon="💼", layout="centered")
 
-# Custom CSS for styling
+# Custom CSS
 st.markdown("""
 <style>
-.main-header {
-    text-align: center;
-    color: #1f77b4;
-    margin-bottom: 30px;
-}
-.job-description {
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    border-left: 5px solid #1f77b4;
-    margin-top: 20px;
-}
-.stButton > button {
-    width: 100%;
-    background-color: #1f77b4;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
-}
-.stDownloadButton > button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-}
+.main-header { text-align: center; color: #1f77b4; margin-bottom: 30px; }
+.job-description { background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #1f77b4; margin-top: 20px; }
+.stButton > button { width: 100%; background-color: #1f77b4; color: white; border: none; padding: 10px; border-radius: 5px; font-size: 16px; font-weight: bold; }
+.stDownloadButton > button { background-color: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -113,40 +89,49 @@ with col4:
 
 # DB connection
 def get_db_connection():
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD,
-        sslmode='require'
-    )
+    try:
+        st.write(f"🔌 Connecting to DB at {PG_HOST}:{PG_PORT} as {PG_USER}")
+        conn = psycopg2.connect(
+            host=PG_HOST,
+            port=int(PG_PORT),
+            dbname=PG_DB,
+            user=PG_USER,
+            password=PG_PASSWORD,
+            sslmode='require'
+        )
+        return conn
+    except Exception as e:
+        st.error(f"❌ Database connection failed: {e}")
+        raise
 
 def save_job_to_db(data):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    insert_query = """
-        INSERT INTO job_submissions (
-            company_name, company_size, industry, company_website, company_description,
-            job_title, experience_level, location, employment_type, salary_range, remote_work,
-            skills, include_benefits, include_company_culture, include_growth_opportunities,
-            include_team_info, application_email, application_link, contact_person,
-            application_deadline, application_instructions
-        ) VALUES (
-            %(company_name)s, %(company_size)s, %(industry)s, %(company_website)s, %(company_description)s,
-            %(job_title)s, %(experience_level)s, %(location)s, %(employment_type)s, %(salary_range)s, %(remote_work)s,
-            %(skills)s, %(include_benefits)s, %(include_company_culture)s, %(include_growth_opportunities)s,
-            %(include_team_info)s, %(application_email)s, %(application_link)s, %(contact_person)s,
-            %(application_deadline)s, %(application_instructions)s
-        )
-    """
-    cursor.execute(insert_query, data)
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        insert_query = """
+            INSERT INTO job_submissions (
+                company_name, company_size, industry, company_website, company_description,
+                job_title, experience_level, location, employment_type, salary_range, remote_work,
+                skills, include_benefits, include_company_culture, include_growth_opportunities,
+                include_team_info, application_email, application_link, contact_person,
+                application_deadline, application_instructions
+            ) VALUES (
+                %(company_name)s, %(company_size)s, %(industry)s, %(company_website)s, %(company_description)s,
+                %(job_title)s, %(experience_level)s, %(location)s, %(employment_type)s, %(salary_range)s, %(remote_work)s,
+                %(skills)s, %(include_benefits)s, %(include_company_culture)s, %(include_growth_opportunities)s,
+                %(include_team_info)s, %(application_email)s, %(application_link)s, %(contact_person)s,
+                %(application_deadline)s, %(application_instructions)s
+            )
+        """
+        cursor.execute(insert_query, data)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        st.success("✅ Job details saved to database.")
+    except Exception as e:
+        st.error(f"❌ Failed to save job to DB: {e}")
 
 def generate_prompt(data):
-    skills_text = ", ".join(data.get("skills", [])) if isinstance(data.get("skills"), list) else "Not specified"
     return f"""
 Generate a job description for:
 Job Title: {data['job_title']}
@@ -155,7 +140,7 @@ Experience Level: {data['experience_level']}
 Industry: {data['industry']}
 Location: {data['location']}
 Type: {data['employment_type']}
-Skills: {skills_text}
+Skills: {data['skills'] or 'Not specified'}
 Salary: {data['salary_range'] or 'Competitive'}
 Remote: {data['remote_work']}
 Description: {data['company_description']}
@@ -189,6 +174,8 @@ if st.button("🚀 Generate Job Description", type="primary"):
         st.warning("⚠️ Please fill required fields.")
     else:
         skills_list = [s.strip() for s in skills.split(",") if s.strip()] if skills else []
+        skills_str = ", ".join(skills_list)
+
         data = {
             "company_name": company_name,
             "company_description": company_description,
@@ -199,7 +186,7 @@ if st.button("🚀 Generate Job Description", type="primary"):
             "location": location,
             "employment_type": employment_type,
             "company_size": company_size,
-            "skills": skills_list,
+            "skills": skills_str,
             "salary_range": salary_range,
             "remote_work": remote_work,
             "include_benefits": include_benefits,
@@ -209,13 +196,14 @@ if st.button("🚀 Generate Job Description", type="primary"):
             "application_email": application_email,
             "application_link": application_link,
             "contact_person": contact_person,
-            "application_deadline": application_deadline,
+            "application_deadline": application_deadline if application_deadline != date.today() else None,
             "application_instructions": application_instructions
         }
 
         prompt = generate_prompt(data)
         with st.spinner("🧐 Generating..."):
             description = call_gemini_api(prompt)
+
         if description.startswith("Error"):
             st.error(description)
         else:
@@ -225,13 +213,12 @@ if st.button("🚀 Generate Job Description", type="primary"):
             st.markdown(description)
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # Save to DB
             save_job_to_db(data)
 
-            # Download button
             filename = f"{company_name.replace(' ', '_')}_{position.replace(' ', '_')}_job_description.txt"
             st.download_button("Download Description", description, file_name=filename, mime="text/plain")
 
 # Footer
 st.markdown("---")
 st.markdown("-------Recruit Nepal------")
+
