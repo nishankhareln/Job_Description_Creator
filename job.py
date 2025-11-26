@@ -22,7 +22,7 @@ def get_secret(key):
     return None
 
 # Load secrets
-API_KEY = get_secret("AIzaSyCvLF8WJtea9QDFS9KHIrgWPI46wIzZf2g")
+API_KEY = get_secret("GEMINI_API_KEY")
 
 # Check API Key
 if not API_KEY:
