@@ -113,34 +113,52 @@ Additional Instructions: {data['application_instructions']}
 """
 
 # Gemini API call
-def call_gemini_api(prompt):
+def get_available_models(api_key):
+    """Return a list of available models your API key can access."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    try:
+        response = requests.get(url)
+        if response.ok:
+            models = response.json().get("models", [])
+            # Only include models that support text generation
+            return [m["name"] for m in models if "generateText" in m.get("supportedMethods", [])]
+        else:
+            st.error(f"❌ Failed to list models: {response.status_code} {response.text}")
+            return []
+    except Exception as e:
+        st.error(f"❌ Exception listing models: {e}")
+        return []
+
+def call_gemini_api(prompt, api_key):
+    """Call Google Gemini API and return generated text."""
     headers = {"Content-Type": "application/json"}
     data = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.7,
-            "topK": 40,
-            "topP": 0.95,
-            "maxOutputTokens": 2048
-        }
+        "prompt": prompt,
+        "temperature": 0.7,
+        "candidateCount": 1,
+        "maxOutputTokens": 2048
     }
 
-    for model in ["gemini-1.5-flash", "gemini-1.5-pro"]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}"
+    # Get available models
+    models = get_available_models(api_key)
+    if not models:
+        return "❌ No available models found for this API key."
+
+    # Try each model until one succeeds
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateText?key={api_key}"
         try:
             response = requests.post(url, headers=headers, json=data)
-            
-            # If the request failed, return the real error
-            if not response.ok:
-                return f"❌ API Error {response.status_code}: {response.text}"
-            
-            # Otherwise, return the generated text
-            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-
+            if response.ok:
+                # Extract generated text
+                result = response.json()
+                return result["candidates"][0]["output"]
+            else:
+                st.warning(f"⚠️ Model {model} failed: {response.status_code} {response.text}")
         except Exception as e:
-            return f"❌ Exception occurred: {e}"
+            st.warning(f"⚠️ Exception for model {model}: {e}")
 
-    return "❌ Could not generate content after trying all models."
+    return "❌ Could not generate content after trying all available models."
 
 
 # Generate Button
