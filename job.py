@@ -195,7 +195,7 @@ if st.button("🚀 Generate Job Description", type="primary"):
 
         prompt = generate_prompt(data)
         with st.spinner("🧐 Generating..."):
-            description = call_gemini_api(prompt)
+            description = call_gemini_api(prompt,API_KEY)
 
         if description.startswith("Error"):
             st.error(description)
