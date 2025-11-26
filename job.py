@@ -118,15 +118,30 @@ def call_gemini_api(prompt):
     data = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.7, "topK": 40, "topP": 0.95, "maxOutputTokens": 2048
+            "temperature": 0.7,
+            "topK": 40,
+            "topP": 0.95,
+            "maxOutputTokens": 2048
         }
     }
+
     for model in ["gemini-1.5-flash", "gemini-1.5-pro"]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}"
-        response = requests.post(url, headers=headers, json=data)
-        if response.ok:
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            
+            # If the request failed, return the real error
+            if not response.ok:
+                return f"❌ API Error {response.status_code}: {response.text}"
+            
+            # Otherwise, return the generated text
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return "Error: Could not generate content."
+
+        except Exception as e:
+            return f"❌ Exception occurred: {e}"
+
+    return "❌ Could not generate content after trying all models."
+
 
 # Generate Button
 if st.button("🚀 Generate Job Description", type="primary"):
