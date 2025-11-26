@@ -10,7 +10,16 @@ load_dotenv()
 
 # Unified secret getter
 def get_secret(key):
-    return os.getenv(key) or st.secrets.get(key)
+    env_value = os.getenv(key)
+    if env_value:
+        return env_value
+    
+    try:
+        if hasattr(st,'secrets') and key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    return None
 
 # Load secrets
 API_KEY = get_secret("GEMINI_API_KEY")
