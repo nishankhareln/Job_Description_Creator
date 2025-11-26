@@ -130,7 +130,7 @@ def get_available_models(api_key):
         return []
 
 def call_gemini_api(prompt, api_key):
-    """Call Google Gemini API and return generated text."""
+    """Call Google Gemini 1.5 API and return generated text."""
     headers = {"Content-Type": "application/json"}
     data = {
         "prompt": prompt,
@@ -139,26 +139,22 @@ def call_gemini_api(prompt, api_key):
         "maxOutputTokens": 2048
     }
 
-    # Get available models
-    models = get_available_models(api_key)
-    if not models:
-        return "❌ No available models found for this API key."
+    # Use a specific Gemini 1.5 model
+    model = "gemini-1.5"  # or "gemini-1.5-pro" if your key supports it
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateText?key={api_key}"
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        if response.ok:
+            result = response.json()
+            return result["candidates"][0]["output"]
+        else:
+            st.error(f"❌ API Error {response.status_code}: {response.text}")
+            return ""
+    except Exception as e:
+        st.error(f"❌ Exception calling Gemini API: {e}")
+        return ""
 
-    # Try each model until one succeeds
-    for model in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateText?key={api_key}"
-        try:
-            response = requests.post(url, headers=headers, json=data)
-            if response.ok:
-                # Extract generated text
-                result = response.json()
-                return result["candidates"][0]["output"]
-            else:
-                st.warning(f"⚠️ Model {model} failed: {response.status_code} {response.text}")
-        except Exception as e:
-            st.warning(f"⚠️ Exception for model {model}: {e}")
-
-    return "❌ Could not generate content after trying all available models."
 
 
 # Generate Button
