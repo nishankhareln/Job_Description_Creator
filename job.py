@@ -133,7 +133,7 @@ def call_gemini_api(prompt, api_key):
     """Call Google Gemini 1.5 API and return generated text."""
     headers = {"Content-Type": "application/json"}
     data = {
-        "prompt": prompt,
+        "prompt": {"text":prompt},
         "temperature": 0.7,
         "candidateCount": 1,
         "maxOutputTokens": 2048
