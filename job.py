@@ -130,7 +130,7 @@ def get_available_models(api_key):
         return []
 
 def call_gemini_api(prompt, api_key):
-    """Call Google Gemini 1.5 API and return generated text."""
+    """Call Google Gemini 2.0 API and return generated text."""
     headers = {"Content-Type": "application/json"}
     data = {
         "prompt": {"text":prompt},
@@ -140,7 +140,7 @@ def call_gemini_api(prompt, api_key):
     }
 
     # Use a specific Gemini 1.5 model
-    model = "gemini-1.5"  # or "gemini-1.5-pro" if your key supports it
+    model = "gemini-2.0"  # or "gemini-1.5-pro" if your key supports it
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateText?key={api_key}"
     
     try:
