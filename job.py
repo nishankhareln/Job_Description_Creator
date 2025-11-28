@@ -130,30 +130,29 @@ def get_available_models(api_key):
         return []
 
 def call_gemini_api(prompt, api_key):
-    """Call Google Gemini 2.0 API and return generated text."""
+    model = "gemini-flash-latest"  # use your valid model
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
     headers = {"Content-Type": "application/json"}
     data = {
-        "prompt": {"text":prompt},
-        "temperature": 0.7,
-        "candidateCount": 1,
-        "maxOutputTokens": 2048
+        "contents": [
+            {"parts": [{"text": prompt}]}
+        ]
     }
 
-    # Use a specific Gemini 1.5 model
-    model = "gemini-2.0"  # or "gemini-1.5-pro" if your key supports it
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateText?key={api_key}"
-    
     try:
         response = requests.post(url, headers=headers, json=data)
         if response.ok:
             result = response.json()
-            return result["candidates"][0]["output"]
+            return result["candidates"][0]["content"]["parts"][0]["text"]
         else:
             st.error(f"❌ API Error {response.status_code}: {response.text}")
             return ""
     except Exception as e:
         st.error(f"❌ Exception calling Gemini API: {e}")
         return ""
+
 
 
 
