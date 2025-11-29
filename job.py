@@ -26,11 +26,11 @@ API_KEY = get_secret("GEMINI_API_KEY")
 
 # Check API Key
 if not API_KEY:
-    st.error("❌ API key not found in .env or .streamlit/secrets.toml")
+    st.error(" API key not found in .env or .streamlit/secrets.toml")
     st.stop()
 
 # Configure the page
-st.set_page_config(page_title="Job Description Generator", page_icon="💼", layout="centered")
+st.set_page_config(page_title="Job Description Generator", page_icon="--", layout="centered")
 
 # Custom CSS
 st.markdown("""
@@ -42,7 +42,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="main-header">🚀 AI Job Description Generator</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header"> AI Job Description Generator</h1>', unsafe_allow_html=True)
 st.markdown("Fill out the form below to generate a professional job description using Google Gemini AI.")
 
 # Company Info
@@ -57,7 +57,7 @@ with col_company2:
 company_description = st.text_area("Company Description (optional)")
 
 # Job Info
-st.subheader("💼 Job Information")
+st.subheader(" Job Information")
 col1, col2 = st.columns(2)
 with col1:
     position = st.text_input("Job Title / Position*")
@@ -70,7 +70,7 @@ with col2:
 skills = st.text_area("Required Skills (comma-separated)")
 
 # Application Info
-st.subheader("📧 Application Information")
+st.subheader(" Application Information")
 col_app1, col_app2 = st.columns(2)
 with col_app1:
     application_email = st.text_input("Application Email")
@@ -81,7 +81,7 @@ with col_app2:
 application_instructions = st.text_area("Additional Application Instructions (optional)")
 
 # Additional Options
-st.subheader("⚙️ Additional Options")
+st.subheader(" Additional Options")
 col3, col4 = st.columns(2)
 with col3:
     include_benefits = st.checkbox("Include benefits section", value=True)
@@ -123,10 +123,10 @@ def get_available_models(api_key):
             # Only include models that support text generation
             return [m["name"] for m in models if "generateText" in m.get("supportedMethods", [])]
         else:
-            st.error(f"❌ Failed to list models: {response.status_code} {response.text}")
+            st.error(f" Failed to list models: {response.status_code} {response.text}")
             return []
     except Exception as e:
-        st.error(f"❌ Exception listing models: {e}")
+        st.error(f" Exception listing models: {e}")
         return []
 
 def call_gemini_api(prompt, api_key):
@@ -147,19 +147,19 @@ def call_gemini_api(prompt, api_key):
             result = response.json()
             return result["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            st.error(f"❌ API Error {response.status_code}: {response.text}")
+            st.error(f" API Error {response.status_code}: {response.text}")
             return ""
     except Exception as e:
-        st.error(f"❌ Exception calling Gemini API: {e}")
+        st.error(f" Exception calling Gemini API: {e}")
         return ""
 
 
 
 
 # Generate Button
-if st.button("🚀 Generate Job Description", type="primary"):
+if st.button(" Generate Job Description", type="primary"):
     if not position or not experience_level:
-        st.warning("⚠️ Please fill required fields.")
+        st.warning(" Please fill required fields.")
     else:
         skills_list = [s.strip() for s in skills.split(",") if s.strip()] if skills else []
         skills_str = ", ".join(skills_list)
@@ -189,15 +189,15 @@ if st.button("🚀 Generate Job Description", type="primary"):
         }
 
         prompt = generate_prompt(data)
-        with st.spinner("🧐 Generating..."):
+        with st.spinner(" Generating..."):
             description = call_gemini_api(prompt,API_KEY)
 
         if description.startswith("Error"):
             st.error(description)
         else:
-            st.success("✅ Generated successfully!")
+            st.success("Generated successfully!")
             st.markdown('<div class="job-description">', unsafe_allow_html=True)
-            st.markdown("### 📄 Generated Job Description")
+            st.markdown("###  Generated Job Description")
             st.markdown(description)
             st.markdown('</div>', unsafe_allow_html=True)
 
